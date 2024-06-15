@@ -27,8 +27,8 @@ func main() {
 		"/app/",
 		apiCfg.middlewareMetricsInc(http.StripPrefix("/app/", http.FileServer(http.Dir(".")))),
 	)
-	mux.HandleFunc("/healthz", health)
-	mux.HandleFunc("/metrics", func(writer http.ResponseWriter, request *http.Request) {
+	mux.HandleFunc("GET /healthz", health)
+	mux.HandleFunc("GET /metrics", func(writer http.ResponseWriter, request *http.Request) {
 		writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		writer.WriteHeader(http.StatusOK)
 		fmt.Fprintf(writer, "Hits: %v", apiCfg.fileserverHits)
