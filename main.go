@@ -27,13 +27,17 @@ func main() {
 		"/app/",
 		apiCfg.middlewareMetricsInc(http.StripPrefix("/app/", http.FileServer(http.Dir(".")))),
 	)
-	mux.HandleFunc("GET /healthz", health)
-	mux.HandleFunc("GET /metrics", func(writer http.ResponseWriter, request *http.Request) {
-		writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	mux.HandleFunc("GET /api/healthz", health)
+	mux.HandleFunc("GET /admin/metrics", func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("Content-Type", "text/html; charset=utf-8")
 		writer.WriteHeader(http.StatusOK)
-		fmt.Fprintf(writer, "Hits: %v", apiCfg.fileserverHits)
+		fmt.Fprintf(
+			writer,
+			"<html><body><h1>Welcome, Chirpy Admin</h1><p>Chirpy has been visited %d times!</p></body></html>",
+			apiCfg.fileserverHits,
+		)
 	})
-	mux.HandleFunc("/reset", func(writer http.ResponseWriter, request *http.Request) {
+	mux.HandleFunc("/api/reset", func(writer http.ResponseWriter, request *http.Request) {
 		writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		writer.WriteHeader(http.StatusOK)
 		apiCfg.fileserverHits = 0
