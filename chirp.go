@@ -7,6 +7,10 @@ import (
 	"os"
 )
 
+func getProfanityWords() []string {
+	return []string{"kerfuffle", "sharbert", "fornax"}
+}
+
 func handleChirpValidate(w http.ResponseWriter, r *http.Request) {
 	maxLen := 140
 
