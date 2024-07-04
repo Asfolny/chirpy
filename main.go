@@ -21,6 +21,7 @@ func main() {
 	mux.HandleFunc("GET /api/healthz", apiCfg.handlerHealth)
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerGetMetrics)
 	mux.HandleFunc("/api/reset", apiCfg.handlerResetMetrics)
+	mux.HandleFunc("POST /api/validate_chirp", handleChirpValidate)
 
 	s := &http.Server{
 		Addr:    ":8080",
