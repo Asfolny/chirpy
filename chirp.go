@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"slices"
+	"strings"
 )
 
 func getProfanityWords() []string {
@@ -52,7 +54,16 @@ func handleChirpValidate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp := validResponse{true}
+	parts := strings.Split(params.Body, " ")
+	profanity := getProfanityWords()
+
+	for i, word := range parts {
+		if slices.Contains(profanity, strings.ToLower(word)) {
+			parts[i] = "****"
+		}
+	}
+
+	resp := validResponse{strings.Join(parts, " ")}
 	dat, err := json.Marshal(resp)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Failed marshalling json error response")
@@ -66,7 +77,7 @@ func handleChirpValidate(w http.ResponseWriter, r *http.Request) {
 }
 
 type validResponse struct {
-	Valid bool `json:"valid"`
+	CleanedBody string `json:"cleaned_body"`
 }
 
 type errorResponse struct {
