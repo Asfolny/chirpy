@@ -1,18 +1,37 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"time"
 )
 
 type apiConfig struct {
 	fileserverHits int
+	database       Database
 }
 
 func main() {
 	mux := http.NewServeMux()
 
 	apiCfg := apiConfig{}
+	if err := apiCfg.database.loadDatabase(); err != nil {
+		log.Fatalln(err)
+	}
+
+	// Keep database up to date
+	go func() {
+		for {
+			time.Sleep(10 * time.Second)
+			fmt.Println("Syncing database...")
+			err := apiCfg.database.sync()
+			if err != nil {
+				log.Fatalln(err)
+			}
+			fmt.Println("Sync success")
+		}
+	}()
 
 	mux.Handle(
 		"/app/",
@@ -21,7 +40,7 @@ func main() {
 	mux.HandleFunc("GET /api/healthz", apiCfg.handlerHealth)
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerGetMetrics)
 	mux.HandleFunc("/api/reset", apiCfg.handlerResetMetrics)
-	mux.HandleFunc("POST /api/validate_chirp", handleChirpValidate)
+	mux.HandleFunc("POST /api/chirps", apiCfg.handlerCreateChirp)
 
 	s := &http.Server{
 		Addr:    ":8080",
