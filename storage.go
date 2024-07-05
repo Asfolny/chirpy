@@ -39,6 +39,10 @@ func (d *Database) loadDatabase() error {
 	if id != 0 {
 		d.latestChirpId = d.Chirps[len(d.Chirps)-1].Id
 	}
+	id = len(d.Users)
+	if id != 0 {
+		d.latestUserId = d.Users[len(d.Users)-1].Id
+	}
 
 	return nil
 }
@@ -69,8 +73,20 @@ func (d *Database) storeChirp(c Chirp) (Chirp, error) {
 	return c, nil
 }
 
+func (d *Database) storeUser(u User) (User, error) {
+	d.mu.Lock()
+	d.mu.Unlock()
+
+	d.latestUserId++
+	u.Id = d.latestUserId
+	d.Users = append(d.Users, u)
+	return u, nil
+}
+
 type Database struct {
 	Chirps        []Chirp `json:"chirps"`
 	latestChirpId int
+	Users         []User `json:"users"`
+	latestUserId  int
 	mu            sync.Mutex
 }
