@@ -174,24 +174,6 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	passHash, err := bcrypt.GenerateFromPassword([]byte(params.Password), 10)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to make bcrypt hash: %s\n", err)
-
-		resp := errorResponse{"Something went wrong"}
-		dat, err := json.Marshal(resp)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "Failed marshalling json error response")
-			w.WriteHeader(500)
-			return
-		}
-
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(500)
-		w.Write(dat)
-		return
-	}
-
 	var user *User
 
 	for _, userInDb := range cfg.database.Users {
@@ -215,12 +197,18 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if user.Password != string(passHash) {
+	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(params.Password))
+	if err != nil {
 		w.WriteHeader(401)
 		return
 	}
 
-	data, err := json.Marshal(user)
+	type userResponse struct {
+		Id    int    `json:"id"`
+		Email string `json:"email"`
+	}
+	userResp := userResponse{user.Id, user.Email}
+	data, err := json.Marshal(&userResp)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
