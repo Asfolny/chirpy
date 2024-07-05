@@ -8,6 +8,21 @@ import (
 	"sync"
 )
 
+func FreshNewDb() *Database {
+	empty := []byte("{}")
+	err := os.WriteFile("data.json", empty, 0644)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	db := Database{}
+	if err := db.loadDatabase(); err != nil {
+		log.Fatalln(err)
+	}
+
+	return &db
+}
+
 func (d *Database) loadDatabase() error {
 	f, err := os.Open("data.json")
 	if err != nil {

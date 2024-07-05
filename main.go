@@ -15,10 +15,7 @@ type apiConfig struct {
 func main() {
 	mux := http.NewServeMux()
 
-	apiCfg := apiConfig{}
-	if err := apiCfg.database.loadDatabase(); err != nil {
-		log.Fatalln(err)
-	}
+	apiCfg := apiConfig{database: *FreshNewDb()}
 
 	// Keep database up to date
 	go func() {
