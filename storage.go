@@ -67,9 +67,14 @@ func (d *Database) storeChirp(c Chirp) (Chirp, error) {
 	d.mu.Lock()
 	d.mu.Unlock()
 
-	d.latestChirpId++
-	c.Id = d.latestChirpId
-	d.Chirps = append(d.Chirps, c)
+	if c.Id == 0 {
+		d.latestChirpId++
+		c.Id = d.latestChirpId
+		d.Chirps = append(d.Chirps, c)
+	} else {
+		d.Chirps[c.Id-1] = c
+	}
+
 	return c, nil
 }
 
@@ -77,9 +82,14 @@ func (d *Database) storeUser(u User) (User, error) {
 	d.mu.Lock()
 	d.mu.Unlock()
 
-	d.latestUserId++
-	u.Id = d.latestUserId
-	d.Users = append(d.Users, u)
+	if u.Id == 0 {
+		d.latestUserId++
+		u.Id = d.latestUserId
+		d.Users = append(d.Users, u)
+	} else {
+		d.Users[u.Id-1] = u
+	}
+
 	return u, nil
 }
 
