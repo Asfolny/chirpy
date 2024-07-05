@@ -83,6 +83,35 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 	w.Write(dat)
 }
 
+func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
+	chirpMap := make([]Chirp, len(cfg.database.Chirps))
+	for i, chirp := range cfg.database.Chirps {
+		chirpMap[i] = chirp
+	}
+
+	data, err := json.Marshal(&chirpMap)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error decoding parameters: %s\n", err)
+
+		resp := errorResponse{"Something went wrong"}
+		dat, err := json.Marshal(resp)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Failed marshalling json error response")
+			w.WriteHeader(500)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(500)
+		w.Write(dat)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	w.Write(data)
+}
+
 type errorResponse struct {
 	Error string `json:"error"`
 }
