@@ -161,12 +161,17 @@ func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
 
 		authorId = &id
 	}
+	sortDesc := r.URL.Query().Get("sort") == "desc"
 
 	chirpMap := []Chirp{}
 	for _, chirp := range cfg.database.Chirps {
 		if authorId == nil || *authorId == chirp.AuthorId {
 			chirpMap = append(chirpMap, chirp)
 		}
+	}
+
+	if sortDesc {
+		slices.Reverse(chirpMap)
 	}
 
 	data, err := json.Marshal(&chirpMap)
