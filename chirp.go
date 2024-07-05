@@ -150,9 +150,23 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 }
 
 func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
-	chirpMap := make([]Chirp, len(cfg.database.Chirps))
-	for i, chirp := range cfg.database.Chirps {
-		chirpMap[i] = chirp
+	queryAuthor := r.URL.Query().Get("author_id")
+	var authorId *int
+	if queryAuthor != "" {
+		id, err := strconv.Atoi(queryAuthor)
+		if err != nil {
+			w.WriteHeader(500)
+			return
+		}
+
+		authorId = &id
+	}
+
+	chirpMap := []Chirp{}
+	for _, chirp := range cfg.database.Chirps {
+		if authorId == nil || *authorId == chirp.AuthorId {
+			chirpMap = append(chirpMap, chirp)
+		}
 	}
 
 	data, err := json.Marshal(&chirpMap)
