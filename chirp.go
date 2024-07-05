@@ -8,6 +8,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 func getProfanityWords() []string {
@@ -15,6 +17,69 @@ func getProfanityWords() []string {
 }
 
 func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request) {
+	bearer := r.Header.Get("Authorization")
+	if bearer == "" || !strings.Contains(bearer, "Bearer ") {
+		resp := errorResponse{"Authorization token is missing"}
+		dat, err := json.Marshal(resp)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Failed marshalling json error response")
+			w.WriteHeader(500)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(401)
+		w.Write(dat)
+		return
+	}
+
+	bearer = strings.Split(bearer, " ")[1]
+	token, err := jwt.ParseWithClaims(
+		bearer,
+		&jwt.RegisteredClaims{},
+		func(token *jwt.Token) (interface{}, error) {
+			return []byte(cfg.jwtSecret), nil
+		},
+	)
+	if err != nil {
+		w.WriteHeader(401)
+		return
+	}
+
+	userId, err := token.Claims.GetSubject()
+	if err != nil {
+		resp := errorResponse{"Failed to get ID from jwt"}
+		dat, err := json.Marshal(resp)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Failed marshalling json error response")
+			w.WriteHeader(500)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(500)
+		w.Write(dat)
+		return
+	}
+
+	userID, err := strconv.Atoi(userId)
+	if err != nil {
+		w.WriteHeader(401)
+		return
+	}
+
+	var user *User
+	for _, userInDb := range cfg.database.Users {
+		if userInDb.Id == userID {
+			user = &userInDb
+		}
+	}
+
+	if user == nil {
+		w.WriteHeader(401)
+		return
+	}
+
 	maxLen := 140
 
 	type parameters struct {
@@ -64,8 +129,8 @@ func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	chirp := Chirp{Body: strings.Join(parts, " ")}
-	chirp, err := cfg.database.storeChirp(chirp)
+	chirp := Chirp{Body: strings.Join(parts, " "), AuthorId: user.Id}
+	chirp, err = cfg.database.storeChirp(chirp)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Failed to store chirp in database")
 		w.WriteHeader(500)
@@ -166,6 +231,7 @@ type errorResponse struct {
 }
 
 type Chirp struct {
-	Id   int    `json:"id"`
-	Body string `json:"body"`
+	Id       int    `json:"id"`
+	Body     string `json:"body"`
+	AuthorId int    `json:"author_id"`
 }
