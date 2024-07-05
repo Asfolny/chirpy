@@ -149,6 +149,84 @@ func (cfg *apiConfig) handlerGetUser(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
+func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
+	type parameters struct {
+		Password string `json:"password"`
+		Email    string `json:"email"`
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	var params parameters
+	if err := decoder.Decode(&params); err != nil {
+		fmt.Fprintf(os.Stderr, "error decoding parameters: %s\n", err)
+
+		resp := errorResponse{"Something went wrong"}
+		dat, err := json.Marshal(resp)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Failed marshalling json error response")
+			w.WriteHeader(500)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(500)
+		w.Write(dat)
+		return
+	}
+
+	passHash, err := bcrypt.GenerateFromPassword([]byte(params.Password), 10)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to make bcrypt hash: %s\n", err)
+
+		resp := errorResponse{"Something went wrong"}
+		dat, err := json.Marshal(resp)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Failed marshalling json error response")
+			w.WriteHeader(500)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(500)
+		w.Write(dat)
+		return
+	}
+
+	var user *User
+
+	for _, userInDb := range cfg.database.Users {
+		if userInDb.Email == params.Email {
+			user = &userInDb
+		}
+	}
+
+	if user == nil {
+		resp := errorResponse{"User does not exist"}
+		dat, err := json.Marshal(resp)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Failed marshalling json error response")
+			w.WriteHeader(500)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(404)
+		w.Write(dat)
+		return
+	}
+
+	if user.Password != string(passHash) {
+		w.WriteHeader(401)
+		return
+	}
+
+	data, err := json.Marshal(user)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	w.Write(data)
+}
+
 type User struct {
 	Id       int    `json:"id"`
 	Email    string `json:"email"`
