@@ -65,7 +65,7 @@ func (d *Database) sync() error {
 
 func (d *Database) storeChirp(c Chirp) (Chirp, error) {
 	d.mu.Lock()
-	d.mu.Unlock()
+	defer d.mu.Unlock()
 
 	if c.Id == 0 {
 		d.latestChirpId++
@@ -80,7 +80,7 @@ func (d *Database) storeChirp(c Chirp) (Chirp, error) {
 
 func (d *Database) storeUser(u User) (User, error) {
 	d.mu.Lock()
-	d.mu.Unlock()
+	defer d.mu.Unlock()
 
 	if u.Id == 0 {
 		d.latestUserId++
@@ -91,6 +91,40 @@ func (d *Database) storeUser(u User) (User, error) {
 	}
 
 	return u, nil
+}
+
+func (d *Database) deleteChirp(c Chirp) error {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
+	if len(d.Chirps) == 0 {
+		return nil
+	}
+
+	if len(d.Chirps) == 1 {
+		if d.Chirps[0].Id == c.Id {
+			d.Chirps = []Chirp{}
+			d.latestChirpId = 0
+		}
+		return nil
+	}
+
+	// The c.Id is it's position within the Chirps, but as arrays and slices use offsets rather than "first item";
+	// The real position is Id-1
+	// Per this logic, left contains all elements BEFORE c, and right contains all elements AFTER
+	left := d.Chirps[:c.Id-1]
+	right := d.Chirps[c.Id-2:]
+
+	d.Chirps = left
+	d.latestChirpId = len(d.Chirps) - 1
+
+	// Re-insert the right chirps to re-order ids, this removes all holes
+	for _, chirp := range right {
+		chirp.Id = 0
+		d.storeChirp(chirp)
+	}
+
+	return nil
 }
 
 type Database struct {

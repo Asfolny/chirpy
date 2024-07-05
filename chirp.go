@@ -178,6 +178,109 @@ func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
+func (cfg *apiConfig) handlerDeleteChirp(w http.ResponseWriter, r *http.Request) {
+	bearer := r.Header.Get("Authorization")
+	if bearer == "" || !strings.Contains(bearer, "Bearer ") {
+		resp := errorResponse{"Authorization token is missing"}
+		dat, err := json.Marshal(resp)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Failed marshalling json error response")
+			w.WriteHeader(500)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(401)
+		w.Write(dat)
+		return
+	}
+
+	bearer = strings.Split(bearer, " ")[1]
+	token, err := jwt.ParseWithClaims(
+		bearer,
+		&jwt.RegisteredClaims{},
+		func(token *jwt.Token) (interface{}, error) {
+			return []byte(cfg.jwtSecret), nil
+		},
+	)
+	if err != nil {
+		w.WriteHeader(401)
+		return
+	}
+
+	userId, err := token.Claims.GetSubject()
+	if err != nil {
+		resp := errorResponse{"Failed to get ID from jwt"}
+		dat, err := json.Marshal(resp)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Failed marshalling json error response")
+			w.WriteHeader(500)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(500)
+		w.Write(dat)
+		return
+	}
+
+	userID, err := strconv.Atoi(userId)
+	if err != nil {
+		w.WriteHeader(401)
+		return
+	}
+
+	var user *User
+	for _, userInDb := range cfg.database.Users {
+		if userInDb.Id == userID {
+			user = &userInDb
+		}
+	}
+
+	if user == nil {
+		w.WriteHeader(401)
+		return
+	}
+
+	lookingFor, err := strconv.Atoi(r.PathValue("chirpID"))
+	if err != nil {
+		resp := errorResponse{"ID param is not a valid number"}
+		dat, err := json.Marshal(resp)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Failed marshalling json error response")
+			w.WriteHeader(500)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(500)
+		w.Write(dat)
+		return
+	}
+
+	var chirp *Chirp
+
+	for _, chirpInDb := range cfg.database.Chirps {
+		if chirpInDb.Id == lookingFor {
+			chirp = &chirpInDb
+		}
+	}
+
+	if chirp == nil {
+		w.WriteHeader(404)
+		return
+
+	}
+
+	if chirp.AuthorId != user.Id {
+		w.WriteHeader(403)
+		return
+	}
+
+	cfg.database.deleteChirp(*chirp)
+	w.WriteHeader(204)
+}
+
 func (cfg *apiConfig) handlerGetChirp(w http.ResponseWriter, r *http.Request) {
 	lookingFor, err := strconv.Atoi(r.PathValue("chirpID"))
 	if err != nil {
