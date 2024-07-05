@@ -4,18 +4,22 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
 type apiConfig struct {
 	fileserverHits int
 	database       Database
+	jwtSecret      string
 }
 
 func main() {
 	mux := http.NewServeMux()
-
-	apiCfg := apiConfig{database: *FreshNewDb()}
+	godotenv.Load()
+	apiCfg := apiConfig{database: *FreshNewDb(), jwtSecret: os.Getenv("JWT_SECRET")}
 
 	// Keep database up to date
 	go func() {
@@ -42,6 +46,7 @@ func main() {
 	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.handlerGetChirp)
 	mux.HandleFunc("POST /api/users", apiCfg.handlerCreateUser)
 	mux.HandleFunc("POST /api/login", apiCfg.handlerLogin)
+	mux.HandleFunc("PUT /api/users", apiCfg.handlerUpdateUser)
 
 	s := &http.Server{
 		Addr:    ":8080",
