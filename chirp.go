@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -106,6 +107,54 @@ func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
 		w.Write(dat)
 		return
 	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	w.Write(data)
+}
+
+func (cfg *apiConfig) handlerGetChirp(w http.ResponseWriter, r *http.Request) {
+	lookingFor, err := strconv.Atoi(r.PathValue("chirpID"))
+	if err != nil {
+		resp := errorResponse{"ID param is not a valid number"}
+		dat, err := json.Marshal(resp)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Failed marshalling json error response")
+			w.WriteHeader(500)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(500)
+		w.Write(dat)
+		return
+	}
+
+	var chirp *Chirp
+
+	for _, chirpInDb := range cfg.database.Chirps {
+		if chirpInDb.Id == lookingFor {
+			chirp = &chirpInDb
+		}
+	}
+
+	if chirp == nil {
+		resp := errorResponse{"Chirp does not exist"}
+		dat, err := json.Marshal(resp)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Failed marshalling json error response")
+			w.WriteHeader(500)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(404)
+		w.Write(dat)
+		return
+
+	}
+
+	data, err := json.Marshal(chirp)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
