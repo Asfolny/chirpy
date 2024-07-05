@@ -14,12 +14,17 @@ type apiConfig struct {
 	fileserverHits int
 	database       Database
 	jwtSecret      string
+	polkaKey       string
 }
 
 func main() {
 	mux := http.NewServeMux()
 	godotenv.Load()
-	apiCfg := apiConfig{database: *FreshNewDb(), jwtSecret: os.Getenv("JWT_SECRET")}
+	apiCfg := apiConfig{
+		database:  *FreshNewDb(),
+		jwtSecret: os.Getenv("JWT_SECRET"),
+		polkaKey:  os.Getenv("POLKA_KEY"),
+	}
 
 	// Keep database up to date
 	go func() {
@@ -50,6 +55,7 @@ func main() {
 	mux.HandleFunc("PUT /api/users", apiCfg.handlerUpdateUser)
 	mux.HandleFunc("POST /api/refresh", apiCfg.handlerRefreshToken)
 	mux.HandleFunc("POST /api/revoke", apiCfg.handlerRevokeToken)
+	mux.HandleFunc("POST /api/polka/webhooks", apiCfg.handlerPolkaWebhook)
 
 	s := &http.Server{
 		Addr:    ":8080",

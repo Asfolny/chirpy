@@ -277,10 +277,11 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	type userResponse struct {
 		Id           int    `json:"id"`
 		Email        string `json:"email"`
+		Red          bool   `json:"is_chirpy_red"`
 		Token        string `json:"token"`
 		RefreshToken string `json:"refresh_token"`
 	}
-	userResp := userResponse{user.Id, user.Email, signedToken, refreshSignedToken}
+	userResp := userResponse{user.Id, user.Email, user.Red, signedToken, refreshSignedToken}
 	data, err := json.Marshal(&userResp)
 
 	w.Header().Set("Content-Type", "application/json")
@@ -616,4 +617,5 @@ type User struct {
 	Email              string  `json:"email"`
 	Password           string  `json:"password"`
 	RefreshTokenSecret *string `json:"refresh_token_secret"`
+	Red                bool    `json:"is_chirpy_red"`
 }
