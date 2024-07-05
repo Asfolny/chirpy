@@ -5,9 +5,32 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 )
 
 func (cfg *apiConfig) handlerPolkaWebhook(w http.ResponseWriter, r *http.Request) {
+	bearer := r.Header.Get("Authorization")
+	if bearer == "" || !strings.Contains(bearer, "ApiKey ") {
+		resp := errorResponse{"Authorization is missing"}
+		dat, err := json.Marshal(resp)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Failed marshalling json error response")
+			w.WriteHeader(500)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(401)
+		w.Write(dat)
+		return
+	}
+
+	apiKey := strings.Split(bearer, " ")[1]
+	if cfg.polkaKey != apiKey {
+		w.WriteHeader(401)
+		return
+	}
+
 	type parameters struct {
 		Event string `json:"event"`
 		Data  struct {
