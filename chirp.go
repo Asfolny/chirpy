@@ -13,7 +13,7 @@ func getProfanityWords() []string {
 	return []string{"kerfuffle", "sharbert", "fornax"}
 }
 
-func handleChirpValidate(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) handlerCreateChirp(w http.ResponseWriter, r *http.Request) {
 	maxLen := 140
 
 	type parameters struct {
@@ -63,8 +63,15 @@ func handleChirpValidate(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	resp := validResponse{strings.Join(parts, " ")}
-	dat, err := json.Marshal(resp)
+	chirp := Chirp{Body: strings.Join(parts, " ")}
+	chirp, err := cfg.database.storeChirp(chirp)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Failed to store chirp in database")
+		w.WriteHeader(500)
+		return
+	}
+
+	dat, err := json.Marshal(chirp)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Failed marshalling json error response")
 		w.WriteHeader(500)
@@ -72,14 +79,15 @@ func handleChirpValidate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
+	w.WriteHeader(201)
 	w.Write(dat)
-}
-
-type validResponse struct {
-	CleanedBody string `json:"cleaned_body"`
 }
 
 type errorResponse struct {
 	Error string `json:"error"`
+}
+
+type Chirp struct {
+	Id   int    `json:"id"`
+	Body string `json:"body"`
 }
