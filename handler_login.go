@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/bootdotdev/learn-http-servers/internal/auth"
+	"github.com/Asfolny/chirpy-go/internal/auth"
 )
 
 func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {

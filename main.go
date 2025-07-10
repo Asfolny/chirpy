@@ -7,7 +7,7 @@ import (
 	"os"
 	"sync/atomic"
 
-	"github.com/bootdotdev/learn-http-servers/internal/database"
+	"github.com/Asfolny/chirpy-go/internal/database"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
